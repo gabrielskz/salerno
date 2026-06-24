@@ -6,13 +6,17 @@ import {
 import { doc, getDoc, getFirestore, setDoc } from 'firebase/firestore'
 import type { SalernoData } from './types'
 
+function envValue(value: string | undefined) {
+  return (value || '').split(/\s+/).filter(Boolean)[0] || ''
+}
+
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: envValue(import.meta.env.VITE_FIREBASE_API_KEY),
+  authDomain: envValue(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN),
+  projectId: envValue(import.meta.env.VITE_FIREBASE_PROJECT_ID),
+  storageBucket: envValue(import.meta.env.VITE_FIREBASE_STORAGE_BUCKET),
+  messagingSenderId: envValue(import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID),
+  appId: envValue(import.meta.env.VITE_FIREBASE_APP_ID),
 }
 
 export const firebaseEnabled = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId)
