@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { addDays, format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { FirebaseError } from 'firebase/app'
 import type { User } from 'firebase/auth'
 import { initialData } from './data'
 import { firebaseEnabled, loadCloudData, login, logout, observeUser, register, saveCloudData } from './firebase'
@@ -34,6 +35,31 @@ function uid() {
 function formatDate(value: string) {
   if (!value) return 'Sem prazo'
   return format(parseISO(value), "dd 'de' MMM", { locale: ptBR })
+}
+
+function getAuthErrorMessage(error: unknown, mode: 'login' | 'register') {
+  if (!(error instanceof FirebaseError)) {
+    return 'Não foi possível concluir. Tente novamente em alguns instantes.'
+  }
+
+  const messages: Record<string, string> = {
+    'auth/email-already-in-use': 'Esse e-mail já tem uma conta. Clique em “Já tenho conta” e entre com a senha cadastrada.',
+    'auth/invalid-email': 'O e-mail digitado não é válido. Confira se ele está correto.',
+    'auth/weak-password': 'A senha precisa ter pelo menos 6 caracteres.',
+    'auth/missing-password': 'Digite uma senha com pelo menos 6 caracteres.',
+    'auth/operation-not-allowed': 'O login por e-mail/senha ainda não está liberado neste projeto do Firebase.',
+    'auth/invalid-credential': 'E-mail ou senha incorretos. Se ainda não criou a conta, clique em “Primeiro acesso? Criar conta”.',
+    'auth/user-not-found': 'Não existe conta cadastrada com esse e-mail. Clique em “Primeiro acesso? Criar conta”.',
+    'auth/wrong-password': 'Senha incorreta para esse e-mail.',
+    'auth/too-many-requests': 'Muitas tentativas seguidas. Aguarde alguns minutos e tente novamente.',
+    'auth/network-request-failed': 'Falha de conexão com o Firebase. Confira a internet e tente novamente.',
+    'auth/unauthorized-domain': 'Este domínio não está autorizado no Firebase. Adicione localhost ou o domínio da Vercel em Authentication > Configurações > Domínios autorizados.',
+    'auth/api-key-not-valid.-please-pass-a-valid-api-key.': 'A API key do Firebase no .env.local está inválida. Copie novamente as configurações do app Web.',
+    'auth/invalid-api-key': 'A API key do Firebase no .env.local está inválida. Copie novamente as configurações do app Web.',
+    'auth/app-not-authorized': 'Este app Web não está autorizado neste projeto Firebase. Confira se o authDomain e o projectId do .env.local são do mesmo projeto.',
+  }
+
+  return messages[error.code] || `Firebase retornou: ${error.code}. ${mode === 'register' ? 'Confira as configurações do Authentication e tente criar a conta novamente.' : 'Confira os dados e tente entrar novamente.'}`
 }
 
 function App() {
@@ -691,8 +717,8 @@ function AuthScreen() {
     try {
       if (mode === 'login') await login(email, password)
       else await register(email, password)
-    } catch {
-      setError('Não foi possível entrar. Confira o e-mail, a senha e se o login por e-mail está ativo no Firebase.')
+    } catch (err) {
+      setError(getAuthErrorMessage(err, mode))
     } finally {
       setLoading(false)
     }

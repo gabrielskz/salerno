@@ -261,14 +261,14 @@ button, input, textarea, select { -webkit-tap-highlight-color: transparent; }
 .auth-orb { position: absolute; z-index: 1; border-radius: 50%; }
 .auth-orb.one { width: 430px; height: 430px; right: -130px; bottom: -180px; background: var(--olive); }
 .auth-orb.two { width: 240px; height: 240px; right: 25%; top: 18%; border: 1px solid rgba(255,255,255,.12); }
-.auth-form-wrap { display: grid; place-items: center; padding: 35px; }
-.auth-form { width: min(360px, 100%); display: grid; gap: 16px; }
-.auth-form h2 { margin: 0; font-family: 'Instrument Serif', serif; font-size: 38px; font-weight: 400; }
-.auth-form > p { margin: -10px 0 8px; color: var(--muted); font-size: 11px; }
-.auth-submit { width: 100%; padding-block: 13px; }
+.auth-form-wrap { display: grid; place-items: center; padding: 44px; }
+.auth-form { width: min(470px, 100%); display: grid; gap: 20px; }
+.auth-form h2 { margin: 0; font-family: 'Instrument Serif', serif; font-size: 54px; font-weight: 400; line-height: 1; }
+.auth-form > p { margin: -10px 0 8px; color: var(--muted); font-size: 17px; line-height: 1.5; }
+.auth-submit { width: 100%; padding-block: 16px; font-size: 16px; }
 .auth-submit:disabled { opacity: .6; cursor: wait; }
-.auth-toggle { border: 0; background: transparent; color: var(--terracotta); font-size: 10px; font-weight: 700; }
-.auth-error { color: #9c2d20; background: #fff1ef; border-radius: 9px; padding: 10px; font-size: 10px; line-height: 1.4; }
+.auth-toggle { border: 0; background: transparent; color: var(--terracotta); font-size: 14px; font-weight: 700; }
+.auth-error { color: #9c2d20; background: #fff1ef; border-radius: 10px; padding: 13px; font-size: 14px; line-height: 1.45; }
 .settings-logout { margin-top: 25px; }
 
 @media (max-width: 1080px) {
@@ -341,7 +341,9 @@ button, input, textarea, select { -webkit-tap-highlight-color: transparent; }
   .auth-brand p { display: none; }
   .auth-orb.one { width: 230px; height: 230px; right: -80px; bottom: -130px; }
   .auth-form-wrap { align-items: start; background: var(--paper); border-radius: 25px 25px 0 0; padding: 30px 24px 45px; margin-top: -22px; position: relative; z-index: 4; }
-  .auth-form h2 { font-size: 32px; }
+  .auth-form { gap: 16px; }
+  .auth-form h2 { font-size: 38px; }
+  .auth-form > p { font-size: 14px; }
 }
 
 @media print {
