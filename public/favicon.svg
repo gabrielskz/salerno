@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="SALERNO">
+  <rect width="512" height="512" rx="112" fill="#8F430D"/>
+  <circle cx="423" cy="106" r="176" fill="#9F5621"/>
+  <circle cx="91" cy="461" r="170" fill="#5A6339"/>
+  <path d="M319 260c79 29 128 104 116 188-13 86-83 150-169 154 35-78 44-154 16-228-15-40-36-76-61-107 30-18 63-20 98-7Z" fill="#6D7550"/>
+  <text x="256" y="344" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="320" font-weight="700" fill="#F7E9DE">S</text>
+  <path d="M158 266h196" stroke="#F7E9DE" stroke-width="18" stroke-linecap="round"/>
+  <circle cx="403" cy="403" r="21" fill="#F7E9DE"/>
+</svg>

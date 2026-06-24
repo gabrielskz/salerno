@@ -52,7 +52,7 @@ function getAuthErrorMessage(error: unknown, mode: 'login' | 'register') {
     'auth/user-not-found': 'Não existe conta cadastrada com esse e-mail. Clique em “Primeiro acesso? Criar conta”.',
     'auth/wrong-password': 'Senha incorreta para esse e-mail.',
     'auth/too-many-requests': 'Muitas tentativas seguidas. Aguarde alguns minutos e tente novamente.',
-    'auth/network-request-failed': 'Falha de conexão com o Firebase. Confira a internet e tente novamente.',
+    'auth/network-request-failed': 'Falha de conexão com o Firebase. Confira se localhost/127.0.0.1 está em Authentication > Configurações > Domínios autorizados, reinicie o npm run dev depois de alterar o .env.local e teste sem VPN/adblock.',
     'auth/unauthorized-domain': 'Este domínio não está autorizado no Firebase. Adicione localhost ou o domínio da Vercel em Authentication > Configurações > Domínios autorizados.',
     'auth/api-key-not-valid.-please-pass-a-valid-api-key.': 'A API key do Firebase no .env.local está inválida. Copie novamente as configurações do app Web.',
     'auth/invalid-api-key': 'A API key do Firebase no .env.local está inválida. Copie novamente as configurações do app Web.',
