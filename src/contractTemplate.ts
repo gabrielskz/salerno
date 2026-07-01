@@ -1,5 +1,31 @@
 import type { ContractClause, ContractData, Project } from './types'
 
+export function getContractorCpf(contract: ContractData): string {
+  const legacyDocument = contract.contractorDocument?.trim() || ''
+  if (contract.contractorCpf?.trim()) return contract.contractorCpf.trim()
+  if (legacyDocument && !legacyDocument.toLowerCase().includes('cau')) return legacyDocument
+  return ''
+}
+
+export function getContractorCau(contract: ContractData): string {
+  const legacyDocument = contract.contractorDocument?.trim() || ''
+  if (contract.contractorCau?.trim()) return contract.contractorCau.trim()
+  if (legacyDocument.toLowerCase().includes('cau')) return legacyDocument
+  return ''
+}
+
+export function formatCauForDisplay(value?: string): string {
+  const cau = value?.trim() || ''
+  if (!cau) return ''
+  return cau.toLowerCase().includes('cau') ? cau : `CAU nº ${cau}`
+}
+
+export function getContractorSignatureLine(contract: ContractData): string {
+  const name = contract.contractorName || 'Contratada'
+  const cau = formatCauForDisplay(getContractorCau(contract))
+  return cau ? `${name} — ${cau}` : name
+}
+
 export const DEFAULT_CONTRACT_TITLE = 'CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE PROJETO DE INTERIORES RESIDENCIAL'
 
 export function createContractClauses(contract: ContractData): ContractClause[] {
@@ -95,6 +121,8 @@ export function createDefaultContract(project: Pick<Project, 'client' | 'name' |
     contractTitle: DEFAULT_CONTRACT_TITLE,
     contractorName: 'Júlia Salerno - Arquiteta e Urbanista',
     contractorDocument: 'CAU nº __________________',
+    contractorCpf: '',
+    contractorCau: 'CAU nº __________________',
     contractorAddress: '',
     contractorEmail: 'salernoarquurb@gmail.com',
     contractorPhone: '(34) 9271-7342',

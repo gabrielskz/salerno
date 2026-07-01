@@ -33,6 +33,8 @@ export interface ContractData {
   contractTitle?: string
   contractorName: string
   contractorDocument: string
+  contractorCpf?: string
+  contractorCau?: string
   contractorAddress: string
   contractorEmail?: string
   contractorPhone?: string

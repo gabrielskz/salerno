@@ -147,6 +147,7 @@ button, input, textarea, select { -webkit-tap-highlight-color: transparent; }
 .category-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 17px; }
 .category-card { background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 21px; }
 .category-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.card-actions { display: flex; align-items: center; gap: 6px; }
 .category-card > p { min-height: 38px; color: var(--muted); line-height: 1.55; font-size: 13px; }
 .category-meta { display: flex; gap: 13px; margin: 17px 0; padding: 13px 0; border-block: 1px solid #eee9e2; color: var(--muted); font-size: 12px; }
 .category-meta span { display: flex; align-items: center; gap: 5px; }
@@ -249,6 +250,9 @@ button, input, textarea, select { -webkit-tap-highlight-color: transparent; }
 .modal-form { gap: 15px; }
 .modal-form > .field { grid-column: 1 / -1; }
 .template-summary { grid-column: 1 / -1; display: flex; gap: 9px; color: var(--olive); background: #f3f5ed; border-radius: 10px; padding: 12px; font-size: 13px; align-items: center; }
+.checkbox-grid { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.checkbox-card { border: 1px solid var(--border); border-radius: 12px; padding: 12px; display: flex; gap: 9px; align-items: center; font-size: 13px; color: var(--muted); background: #fff; }
+.checkbox-card input { width: 16px; height: 16px; accent-color: var(--olive); }
 .modal-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; margin-top: 5px; }
 .empty-state { min-height: 300px; display: grid; place-items: center; align-content: center; text-align: center; color: #979187; background: var(--paper); border: 1px dashed #d9d2c8; border-radius: 17px; }
 .empty-state svg { width: 35px; height: 35px; }
@@ -341,6 +345,7 @@ button, input, textarea, select { -webkit-tap-highlight-color: transparent; }
   .mobile-nav .mobile-new { width: 44px; height: 44px; align-self: center; justify-self: center; margin-top: -25px; border-radius: 50%; background: var(--terracotta); color: #fff; box-shadow: 0 7px 18px rgba(143,67,13,.3); }
   .modal { padding: 20px; }
   .modal-form { grid-template-columns: 1fr; }
+  .checkbox-grid { grid-template-columns: 1fr; }
   .letterhead-preview { width: 100%; }
   .auth-screen { grid-template-columns: 1fr; background: var(--terracotta); }
   .auth-brand { min-height: 230px; padding: 27px 24px; }

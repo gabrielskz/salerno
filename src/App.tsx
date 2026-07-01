@@ -9,7 +9,7 @@ import { addDays, format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { FirebaseError } from 'firebase/app'
 import type { User } from 'firebase/auth'
-import { createDefaultContract, DEFAULT_CONTRACT_TITLE, getContractClauses } from './contractTemplate'
+import { createDefaultContract, DEFAULT_CONTRACT_TITLE, getContractClauses, getContractorCau, getContractorCpf } from './contractTemplate'
 import { initialData } from './data'
 import { firebaseEnabled, loadCloudData, login, logout, observeUser, register, saveCloudData } from './firebase'
 import { formatCurrency, formatPhone } from './formatters'
@@ -75,6 +75,7 @@ function App() {
   const [mobileMenu, setMobileMenu] = useState(false)
   const [projectModal, setProjectModal] = useState(false)
   const [categoryModal, setCategoryModal] = useState(false)
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null)
   const [user, setUser] = useState<User | null | undefined>(firebaseEnabled ? undefined : null)
   const [cloudReady, setCloudReady] = useState(!firebaseEnabled)
   const [syncState, setSyncState] = useState<'local' | 'syncing' | 'synced' | 'error'>(
@@ -109,6 +110,7 @@ function App() {
   }, [data, user, cloudReady])
 
   const selectedProject = data.projects.find((project) => project.id === selectedId)
+  const editingCategory = data.categories.find((category) => category.id === editingCategoryId)
 
   function navigate(next: View) {
     setView(next)
@@ -188,7 +190,14 @@ function App() {
           {view === 'categories' && (
             <CategoriesPage
               categories={data.categories}
-              onNew={() => setCategoryModal(true)}
+              onNew={() => {
+                setEditingCategoryId(null)
+                setCategoryModal(true)
+              }}
+              onEdit={(id) => {
+                setEditingCategoryId(id)
+                setCategoryModal(true)
+              }}
               onDelete={(id) => setData((current) => ({
                 ...current,
                 categories: current.categories.filter((category) => category.id !== id),
@@ -223,10 +232,20 @@ function App() {
       )}
       {categoryModal && (
         <NewCategoryModal
-          onClose={() => setCategoryModal(false)}
-          onCreate={(category) => {
-            setData((current) => ({ ...current, categories: [...current.categories, category] }))
+          category={editingCategory}
+          onClose={() => {
             setCategoryModal(false)
+            setEditingCategoryId(null)
+          }}
+          onSave={(category) => {
+            setData((current) => ({
+              ...current,
+              categories: current.categories.some((item) => item.id === category.id)
+                ? current.categories.map((item) => item.id === category.id ? category : item)
+                : [...current.categories, category],
+            }))
+            setCategoryModal(false)
+            setEditingCategoryId(null)
           }}
         />
       )}
@@ -432,9 +451,10 @@ function ProjectCard({ project, category, onClick }: {
   )
 }
 
-function CategoriesPage({ categories, onNew, onDelete }: {
+function CategoriesPage({ categories, onNew, onEdit, onDelete }: {
   categories: CategoryTemplate[]
   onNew: () => void
+  onEdit: (id: string) => void
   onDelete: (id: string) => void
 }) {
   return (
@@ -454,7 +474,10 @@ function CategoriesPage({ categories, onNew, onDelete }: {
             <article className="category-card" key={category.id}>
               <div className="category-card-head">
                 <div className="category-icon large" style={{ backgroundColor: `${category.color}18`, color: category.color }}><Icon /></div>
-                <button className="icon-button danger" onClick={() => onDelete(category.id)} aria-label="Excluir categoria"><Trash2 size={17} /></button>
+                <div className="card-actions">
+                  <button className="icon-button" onClick={() => onEdit(category.id)} aria-label="Editar categoria"><FilePenLine size={17} /></button>
+                  <button className="icon-button danger" onClick={() => onDelete(category.id)} aria-label="Excluir categoria"><Trash2 size={17} /></button>
+                </div>
               </div>
               <h4>{category.name}</h4>
               <p>{category.description}</p>
@@ -668,6 +691,8 @@ function EditableContractTab({ project, update }: {
   update: (updater: (project: Project) => Project) => void
 }) {
   const c = { ...createDefaultContract(project, project.contract), ...project.contract }
+  const contractorCpf = getContractorCpf(c)
+  const contractorCau = getContractorCau(c)
   const clauses = getContractClauses(c)
 
   function setContract(key: keyof ContractData, value: string) {
@@ -737,7 +762,8 @@ function EditableContractTab({ project, update }: {
           <Field label="Endereço do cliente" className="full" value={c.clientAddress} onChange={(v) => setContract('clientAddress', v)} />
 
           <Field label="Contratada" value={c.contractorName} onChange={(v) => setContract('contractorName', v)} />
-          <Field label="CPF / CAU da contratada" value={c.contractorDocument} onChange={(v) => setContract('contractorDocument', v)} />
+          <Field label="CPF da contratada" value={contractorCpf} onChange={(v) => setContract('contractorCpf', v)} />
+          <Field label="CAU da contratada" value={contractorCau} onChange={(v) => setContract('contractorCau', v)} />
           <Field label="E-mail da contratada" value={c.contractorEmail || ''} onChange={(v) => setContract('contractorEmail', v)} />
           <Field label="Telefone da contratada" value={c.contractorPhone || ''} onChange={(v) => setContract('contractorPhone', v)} />
           <Field label="Instagram da contratada" value={c.contractorInstagram || ''} onChange={(v) => setContract('contractorInstagram', v)} />
@@ -795,7 +821,8 @@ function ContractTab({ project, update }: {
         </div>
         <div className="form-grid">
           <Field label="Contratada" value={c.contractorName} onChange={(v) => setContract('contractorName', v)} />
-          <Field label="CAU / documento" value={c.contractorDocument} onChange={(v) => setContract('contractorDocument', v)} />
+          <Field label="CPF da contratada" value={getContractorCpf(c)} onChange={(v) => setContract('contractorCpf', v)} />
+          <Field label="CAU da contratada" value={getContractorCau(c)} onChange={(v) => setContract('contractorCau', v)} />
           <Field label="Cliente" value={c.clientName} onChange={(v) => setContract('clientName', v)} />
           <Field label="CPF / CNPJ do cliente" value={c.clientDocument} onChange={(v) => setContract('clientDocument', v)} />
           <Field label="Endereço do cliente" className="full" value={c.clientAddress} onChange={(v) => setContract('clientAddress', v)} />
@@ -923,6 +950,8 @@ function NewProjectModal({ categories, onClose, onCreate }: {
       contract: {
         contractorName: 'Júlia Salerno — Arquiteta e Urbanista',
         contractorDocument: 'CAU nº __________________',
+        contractorCpf: '',
+        contractorCau: 'CAU nº __________________',
         contractorAddress: '',
         clientName: client,
         clientDocument: '',
@@ -958,26 +987,37 @@ function NewProjectModal({ categories, onClose, onCreate }: {
   )
 }
 
-function NewCategoryModal({ onClose, onCreate }: {
+function NewCategoryModal({ category, onClose, onSave }: {
+  category?: CategoryTemplate
   onClose: () => void
-  onCreate: (category: CategoryTemplate) => void
+  onSave: (category: CategoryTemplate) => void
 }) {
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [software, setSoftware] = useState('')
+  const isEditing = Boolean(category)
+  const [name, setName] = useState(category?.name || '')
+  const [description, setDescription] = useState(category?.description || '')
+  const [software, setSoftware] = useState(category?.software.join(', ') || '')
+  const [defaultDeadlineDays, setDefaultDeadlineDays] = useState(String(category?.defaultDeadlineDays || 30))
+  const [prefeituraRequired, setPrefeituraRequired] = useState(category?.prefeituraRequired || false)
+  const [rrtRequired, setRrtRequired] = useState(category?.rrtRequired || false)
   function submit(e: React.FormEvent) {
     e.preventDefault()
     if (!name) return
-    onCreate({
-      id: uid(), name, description, icon: 'building', color: '#6D7550',
+    onSave({
+      id: category?.id || uid(),
+      name,
+      description,
+      icon: category?.icon || 'building',
+      color: category?.color || '#6D7550',
       software: software.split(',').map((item) => item.trim()).filter(Boolean),
-      prefeituraRequired: false, rrtRequired: false, defaultDeadlineDays: 30,
-      checklist: [
+      prefeituraRequired,
+      rrtRequired,
+      defaultDeadlineDays: Math.max(1, Number(defaultDeadlineDays) || 30),
+      checklist: category?.checklist || [
         { id: uid(), title: 'Briefing com o cliente', description: 'Registrar necessidades e referências.' },
         { id: uid(), title: 'Desenvolvimento do projeto', description: 'Executar o escopo contratado.' },
         { id: uid(), title: 'Entrega final', description: 'Revisar e enviar todos os arquivos.' },
       ],
-      briefing: [
+      briefing: category?.briefing || [
         { id: uid(), section: 'Informações iniciais', question: 'Qual é o objetivo principal do projeto?' },
         { id: uid(), section: 'Informações iniciais', question: 'Qual é o prazo desejado?' },
         { id: uid(), section: 'Investimento', question: 'Qual é o orçamento disponível?' },
@@ -985,13 +1025,28 @@ function NewCategoryModal({ onClose, onCreate }: {
     })
   }
   return (
-    <Modal title="Nova categoria" subtitle="Você poderá usar este modelo em novos projetos." onClose={onClose}>
+    <Modal
+      title={isEditing ? 'Editar categoria' : 'Nova categoria'}
+      subtitle={isEditing ? 'Atualize as informações usadas como modelo para novos projetos.' : 'Você poderá usar este modelo em novos projetos.'}
+      onClose={onClose}
+    >
       <form onSubmit={submit} className="modal-form">
         <Field label="Nome da categoria" value={name} onChange={setName} placeholder="Ex.: Consultoria" />
         <Field label="Descrição" value={description} onChange={setDescription} placeholder="Uma frase sobre este serviço" />
         <Field label="Softwares" value={software} onChange={setSoftware} placeholder="AutoCAD, SketchUp, Excel" />
-        <div className="template-summary"><Sparkles size={18} /><span>A categoria será criada com um checklist e briefing iniciais.</span></div>
-        <div className="modal-actions"><button type="button" className="secondary-button" onClick={onClose}>Cancelar</button><button className="primary-button">Criar categoria</button></div>
+        <Field label="Prazo padrão em dias" value={defaultDeadlineDays} onChange={setDefaultDeadlineDays} type="number" inputMode="numeric" />
+        <div className="checkbox-grid">
+          <label className="checkbox-card">
+            <input type="checkbox" checked={prefeituraRequired} onChange={(event) => setPrefeituraRequired(event.target.checked)} />
+            <span>Precisa de protocolo na prefeitura</span>
+          </label>
+          <label className="checkbox-card">
+            <input type="checkbox" checked={rrtRequired} onChange={(event) => setRrtRequired(event.target.checked)} />
+            <span>Precisa emitir RRT</span>
+          </label>
+        </div>
+        <div className="template-summary"><Sparkles size={18} /><span>{isEditing ? 'As alterações valem para novos projetos criados com esta categoria.' : 'A categoria será criada com um checklist e briefing iniciais.'}</span></div>
+        <div className="modal-actions"><button type="button" className="secondary-button" onClick={onClose}>Cancelar</button><button className="primary-button">{isEditing ? 'Salvar categoria' : 'Criar categoria'}</button></div>
       </form>
     </Modal>
   )

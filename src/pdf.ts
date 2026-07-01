@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf'
-import { DEFAULT_CONTRACT_TITLE, getContractClauses } from './contractTemplate'
+import { DEFAULT_CONTRACT_TITLE, formatCauForDisplay, getContractClauses, getContractorCau, getContractorCpf, getContractorSignatureLine } from './contractTemplate'
 import type { ContractData, Project } from './types'
 
 const OLIVE = [90, 99, 57] as const
@@ -109,7 +109,7 @@ function addSignatures(pdf: jsPDF, letterhead: string, data: ContractData, y: nu
   pdf.text('CONTRATADA', 59.5, y + 6, { align: 'center' })
   pdf.text('CONTRATANTE', 150.5, y + 6, { align: 'center' })
   pdf.setFontSize(8.5)
-  pdf.text(data.contractorName || 'Contratada', 59.5, y + 12, { align: 'center', maxWidth: 62 })
+  pdf.text(getContractorSignatureLine(data), 59.5, y + 12, { align: 'center', maxWidth: 62 })
   pdf.text(data.clientName || 'Contratante', 150.5, y + 12, { align: 'center', maxWidth: 62 })
 }
 
@@ -140,7 +140,8 @@ export async function createContractPdf(project: Project, data: ContractData, le
 
   y = addPartyBlock(pdf, background, 'Contratada', [
     `Nome: ${data.contractorName || '[nome da contratada]'}`,
-    `CPF/CAU: ${data.contractorDocument || '[documento profissional]'}`,
+    `CPF: ${getContractorCpf(data) || '[CPF da contratada]'}`,
+    `CAU: ${formatCauForDisplay(getContractorCau(data)) || '[CAU da contratada]'}`,
     `E-mail: ${data.contractorEmail || '[e-mail da contratada]'}`,
     `Endereço comercial: ${data.contractorAddress || '[endereço comercial]'}`,
     `Telefone: ${data.contractorPhone || '[telefone da contratada]'}`,
