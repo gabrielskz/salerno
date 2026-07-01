@@ -1,7 +1,9 @@
 import { jsPDF } from 'jspdf'
+import { DEFAULT_CONTRACT_TITLE, getContractClauses } from './contractTemplate'
 import type { ContractData, Project } from './types'
 
 const OLIVE = [90, 99, 57] as const
+const TEXT = [50, 48, 43] as const
 const PAGE_WIDTH = 210
 const PAGE_HEIGHT = 297
 const CONTENT_TOP = 40
@@ -25,62 +27,131 @@ function addLetterhead(pdf: jsPDF, letterhead: string) {
   pdf.addImage(letterhead, 'PNG', 0, 0, PAGE_WIDTH, PAGE_HEIGHT)
 }
 
-function addBlock(pdf: jsPDF, letterhead: string, title: string, text: string, y: number) {
-  const lines = pdf.splitTextToSize(text || 'Não informado.', CONTENT_WIDTH)
-  const needed = 8 + lines.length * 4.6
-  if (y + needed > CONTENT_BOTTOM) {
-    pdf.addPage()
-    addLetterhead(pdf, letterhead)
-    y = CONTENT_TOP
-  }
+function ensureSpace(pdf: jsPDF, letterhead: string, y: number, needed: number) {
+  if (y + needed <= CONTENT_BOTTOM) return y
+  pdf.addPage()
+  addLetterhead(pdf, letterhead)
+  return CONTENT_TOP
+}
+
+function addMultiline(pdf: jsPDF, text: string, x: number, y: number, width: number, lineHeight = 4.8) {
+  const lines = pdf.splitTextToSize(text || 'Não informado.', width)
+  pdf.text(lines, x, y, { lineHeightFactor: 1.25 })
+  return y + lines.length * lineHeight
+}
+
+function addPartyBlock(pdf: jsPDF, letterhead: string, title: string, rows: string[], y: number) {
+  const lines = rows.filter(Boolean)
+  y = ensureSpace(pdf, letterhead, y, 9 + lines.length * 5)
   pdf.setTextColor(...OLIVE)
   pdf.setFont('helvetica', 'bold')
   pdf.setFontSize(10.5)
   pdf.text(title.toUpperCase(), CONTENT_MARGIN, y)
-  pdf.setTextColor(50, 48, 43)
+  y += 6
+  pdf.setTextColor(...TEXT)
   pdf.setFont('helvetica', 'normal')
   pdf.setFontSize(10)
-  pdf.text(lines, CONTENT_MARGIN, y + 5.5, { lineHeightFactor: 1.3 })
-  return y + needed + 2.5
+  for (const line of lines) {
+    y = addMultiline(pdf, line, CONTENT_MARGIN, y, CONTENT_WIDTH)
+    y += 1.3
+  }
+  return y + 2.5
+}
+
+function addClause(pdf: jsPDF, letterhead: string, title: string, content: string, y: number) {
+  const paragraphs = content.split('\n')
+  const estimatedLines = paragraphs.reduce((sum, paragraph) => {
+    if (!paragraph.trim()) return sum + 1
+    return sum + Math.max(1, pdf.splitTextToSize(paragraph, CONTENT_WIDTH).length)
+  }, 0)
+  y = ensureSpace(pdf, letterhead, y, 8 + estimatedLines * 4.8)
+
+  pdf.setTextColor(...OLIVE)
+  pdf.setFont('helvetica', 'bold')
+  pdf.setFontSize(10.5)
+  pdf.text(title.toUpperCase(), CONTENT_MARGIN, y)
+  y += 6
+
+  pdf.setTextColor(...TEXT)
+  pdf.setFont('helvetica', 'normal')
+  pdf.setFontSize(10)
+
+  for (const paragraph of paragraphs) {
+    if (!paragraph.trim()) {
+      y += 2.2
+      continue
+    }
+    if (paragraph.trim().startsWith('- ')) {
+      y = ensureSpace(pdf, letterhead, y, 7)
+      const bulletText = paragraph.trim().slice(2)
+      pdf.text('•', CONTENT_MARGIN + 2, y)
+      y = addMultiline(pdf, bulletText, CONTENT_MARGIN + 8, y, CONTENT_WIDTH - 8)
+      y += 1.2
+      continue
+    }
+    y = ensureSpace(pdf, letterhead, y, 8)
+    y = addMultiline(pdf, paragraph, CONTENT_MARGIN, y, CONTENT_WIDTH)
+    y += 1.2
+  }
+
+  return y + 3
+}
+
+function addSignatures(pdf: jsPDF, letterhead: string, data: ContractData, y: number) {
+  y = ensureSpace(pdf, letterhead, y, 48)
+  pdf.setTextColor(...TEXT)
+  pdf.setFont('helvetica', 'normal')
+  pdf.setFontSize(10)
+  pdf.text(`${data.city || '[cidade/UF]'}, ${data.date || '[data]'}.`, 105, y + 5, { align: 'center' })
+  y += 30
+  pdf.line(28, y, 91, y)
+  pdf.line(119, y, 182, y)
+  pdf.text('CONTRATADA', 59.5, y + 6, { align: 'center' })
+  pdf.text('CONTRATANTE', 150.5, y + 6, { align: 'center' })
+  pdf.setFontSize(8.5)
+  pdf.text(data.contractorName || 'Contratada', 59.5, y + 12, { align: 'center', maxWidth: 62 })
+  pdf.text(data.clientName || 'Contratante', 150.5, y + 12, { align: 'center', maxWidth: 62 })
 }
 
 export async function createContractPdf(project: Project, data: ContractData, letterhead?: string) {
   const pdf = new jsPDF({ unit: 'mm', format: 'a4' })
   const background = letterhead || await loadLetterhead()
   addLetterhead(pdf, background)
-  pdf.setTextColor(50, 48, 43)
+
+  pdf.setTextColor(...TEXT)
   pdf.setFont('helvetica', 'bold')
-  pdf.setFontSize(14)
-  pdf.text('CONTRATO DE PRESTAÇÃO DE SERVIÇOS', 105, 42, { align: 'center' })
-  pdf.setFontSize(10.5)
-  pdf.setFont('helvetica', 'normal')
-  pdf.text(`Projeto: ${project.name}`, 105, 48, { align: 'center' })
+  pdf.setFontSize(13)
+  const titleLines = pdf.splitTextToSize(data.contractTitle || DEFAULT_CONTRACT_TITLE, 158)
+  pdf.text(titleLines, 105, 39, { align: 'center', lineHeightFactor: 1.15 })
 
-  let y = 58
-  y = addBlock(pdf, background, '1. Partes', `CONTRATADA: ${data.contractorName}, ${data.contractorDocument}, com endereço em ${data.contractorAddress || 'endereço a preencher'}.\n\nCONTRATANTE: ${data.clientName}, ${data.clientDocument || 'documento a preencher'}, residente em ${data.clientAddress || 'endereço a preencher'}.`, y)
-  y = addBlock(pdf, background, '2. Objeto do contrato', `${data.scope}\n\nLocal do projeto: ${data.projectAddress}.`, y)
-  y = addBlock(pdf, background, '3. Entregáveis', data.deliverables, y)
-  y = addBlock(pdf, background, '4. Honorários e forma de pagamento', `Valor total: ${data.totalValue}.\n\nForma de pagamento: ${data.paymentTerms}`, y)
-  y = addBlock(pdf, background, '5. Prazo', data.deadline, y)
-  y = addBlock(pdf, background, '6. Alterações', data.revisions, y)
-  y = addBlock(pdf, background, '7. Responsabilidades', 'A CONTRATADA executará os serviços com diligência e conforme as normas profissionais aplicáveis. O CONTRATANTE fornecerá documentos, medidas, aprovações e informações necessárias, respondendo pela veracidade dos dados apresentados. A execução da obra deverá respeitar os projetos entregues e ser realizada por profissionais habilitados.', y)
-  y = addBlock(pdf, background, '8. Direitos autorais e uso do projeto', 'O projeto é protegido pela legislação autoral. Sua utilização limita-se ao endereço e ao objeto deste contrato. Alterações, reproduções ou reutilizações dependem de autorização da CONTRATADA. A CONTRATADA poderá divulgar imagens do projeto em portfólio, preservando dados pessoais do CONTRATANTE, salvo manifestação contrária por escrito.', y)
-  y = addBlock(pdf, background, '9. Rescisão', 'O contrato poderá ser rescindido por qualquer das partes mediante comunicação escrita. Serão devidos os valores proporcionais às etapas já executadas, além de despesas e compromissos assumidos até a data da rescisão.', y)
-  y = addBlock(pdf, background, '10. Observações', data.observations, y)
-  y = addBlock(pdf, background, '11. Foro', `Fica eleito o foro da comarca correspondente a ${data.city}, com renúncia a qualquer outro, para dirimir dúvidas decorrentes deste contrato.`, y)
-
-  if (y > 238) {
-    pdf.addPage()
-    addLetterhead(pdf, background)
-    y = 54
-  }
-  pdf.setTextColor(50, 48, 43)
+  let y = 39 + titleLines.length * 6 + 5
   pdf.setFontSize(10)
-  pdf.text(`${data.city}, ${data.date}.`, 105, y + 6, { align: 'center' })
-  pdf.line(28, y + 32, 91, y + 32)
-  pdf.line(119, y + 32, 182, y + 32)
-  pdf.text('CONTRATADA', 59.5, y + 38, { align: 'center' })
-  pdf.text('CONTRATANTE', 150.5, y + 38, { align: 'center' })
+  pdf.setFont('helvetica', 'normal')
+  pdf.text(`Projeto: ${project.name}`, 105, y, { align: 'center' })
+  y += 13
+
+  y = addPartyBlock(pdf, background, 'Contratante', [
+    `Nome: ${data.clientName || '[nome do cliente]'}`,
+    `CPF/CNPJ: ${data.clientDocument || '[documento do cliente]'}`,
+    `E-mail: ${data.clientEmail || '[e-mail do cliente]'}`,
+    `Endereço: ${data.clientAddress || '[endereço do cliente]'}`,
+    `Telefone: ${data.clientPhone || '[telefone do cliente]'}`,
+  ], y)
+
+  y = addPartyBlock(pdf, background, 'Contratada', [
+    `Nome: ${data.contractorName || '[nome da contratada]'}`,
+    `CPF/CAU: ${data.contractorDocument || '[documento profissional]'}`,
+    `E-mail: ${data.contractorEmail || '[e-mail da contratada]'}`,
+    `Endereço comercial: ${data.contractorAddress || '[endereço comercial]'}`,
+    `Telefone: ${data.contractorPhone || '[telefone da contratada]'}`,
+    `Instagram: ${data.contractorInstagram || '[instagram]'}`,
+  ], y)
+
+  for (const clause of getContractClauses(data)) {
+    y = addClause(pdf, background, clause.title, clause.content, y)
+  }
+
+  addSignatures(pdf, background, data, y)
   return pdf
 }
 

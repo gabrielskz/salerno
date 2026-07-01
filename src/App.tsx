@@ -9,6 +9,7 @@ import { addDays, format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { FirebaseError } from 'firebase/app'
 import type { User } from 'firebase/auth'
+import { createDefaultContract, DEFAULT_CONTRACT_TITLE, getContractClauses } from './contractTemplate'
 import { initialData } from './data'
 import { firebaseEnabled, loadCloudData, login, logout, observeUser, register, saveCloudData } from './firebase'
 import { formatCurrency, formatPhone } from './formatters'
@@ -510,7 +511,7 @@ function ProjectPage({ project, category, tab, setTab, update, onDelete }: {
       {tab === 'visao' && <OverviewTab project={project} category={category} update={update} onDelete={onDelete} />}
       {tab === 'briefing' && <BriefingTab project={project} update={update} />}
       {tab === 'processo' && <ProcessTab project={project} category={category} update={update} />}
-      {tab === 'contrato' && <ContractTab project={project} update={update} />}
+      {tab === 'contrato' && <EditableContractTab project={project} update={update} />}
     </>
   )
 }
@@ -659,6 +660,121 @@ function GuideCard({ title, icon: Icon, steps }: { title: string, icon: typeof B
       <div className="panel-title"><h3>{title}</h3><Icon size={19} /></div>
       <ol>{steps.map((step) => <li key={step}>{step}</li>)}</ol>
     </section>
+  )
+}
+
+function EditableContractTab({ project, update }: {
+  project: Project
+  update: (updater: (project: Project) => Project) => void
+}) {
+  const c = { ...createDefaultContract(project, project.contract), ...project.contract }
+  const clauses = getContractClauses(c)
+
+  function setContract(key: keyof ContractData, value: string) {
+    update((p) => ({ ...p, contract: { ...p.contract, [key]: value } }))
+  }
+
+  function setClause(index: number, key: 'title' | 'content', value: string) {
+    update((p) => {
+      const base = { ...createDefaultContract(p, p.contract), ...p.contract }
+      const current = getContractClauses(base)
+      return {
+        ...p,
+        contract: {
+          ...base,
+          clauses: current.map((clause, clauseIndex) => clauseIndex === index ? { ...clause, [key]: value } : clause),
+        },
+      }
+    })
+  }
+
+  function addClause() {
+    update((p) => {
+      const base = { ...createDefaultContract(p, p.contract), ...p.contract }
+      return {
+        ...p,
+        contract: {
+          ...base,
+          clauses: [
+            ...getContractClauses(base),
+            { id: `clause-${Date.now()}`, title: 'NOVA CLÁUSULA', content: 'Digite o texto da nova cláusula.' },
+          ],
+        },
+      }
+    })
+  }
+
+  function removeClause(index: number) {
+    update((p) => {
+      const base = { ...createDefaultContract(p, p.contract), ...p.contract }
+      return {
+        ...p,
+        contract: {
+          ...base,
+          clauses: getContractClauses(base).filter((_, clauseIndex) => clauseIndex !== index),
+        },
+      }
+    })
+  }
+
+  return (
+    <div className="contract-layout">
+      <section className="panel contract-form">
+        <div className="panel-title">
+          <div>
+            <h3>Contrato editável</h3>
+            <p>Estrutura baseada no modelo enviado, sem dados da outra arquiteta e com todas as cláusulas editáveis.</p>
+          </div>
+          <button className="primary-button" onClick={() => generateContractPdf(project, { ...c, clauses })}><Download size={17} /> Gerar PDF</button>
+        </div>
+
+        <div className="form-grid">
+          <Field label="Título do contrato" className="full" value={c.contractTitle || DEFAULT_CONTRACT_TITLE} onChange={(v) => setContract('contractTitle', v)} />
+          <Field label="Contratante / cliente" value={c.clientName} onChange={(v) => setContract('clientName', v)} />
+          <Field label="CPF / CNPJ do cliente" value={c.clientDocument} onChange={(v) => setContract('clientDocument', v)} />
+          <Field label="E-mail do cliente" value={c.clientEmail || ''} onChange={(v) => setContract('clientEmail', v)} />
+          <Field label="Telefone do cliente" value={c.clientPhone || ''} onChange={(v) => setContract('clientPhone', v)} />
+          <Field label="Endereço do cliente" className="full" value={c.clientAddress} onChange={(v) => setContract('clientAddress', v)} />
+
+          <Field label="Contratada" value={c.contractorName} onChange={(v) => setContract('contractorName', v)} />
+          <Field label="CPF / CAU da contratada" value={c.contractorDocument} onChange={(v) => setContract('contractorDocument', v)} />
+          <Field label="E-mail da contratada" value={c.contractorEmail || ''} onChange={(v) => setContract('contractorEmail', v)} />
+          <Field label="Telefone da contratada" value={c.contractorPhone || ''} onChange={(v) => setContract('contractorPhone', v)} />
+          <Field label="Instagram da contratada" value={c.contractorInstagram || ''} onChange={(v) => setContract('contractorInstagram', v)} />
+          <Field label="Endereço comercial da contratada" className="full" value={c.contractorAddress} onChange={(v) => setContract('contractorAddress', v)} />
+
+          <Field label="Endereço do projeto" className="full" value={c.projectAddress} onChange={(v) => setContract('projectAddress', v)} />
+          <Field label="Valor total" value={c.totalValue} onChange={(v) => setContract('totalValue', formatCurrency(v))} placeholder="R$ 0,00" inputMode="numeric" />
+          <Field label="Cidade / foro" value={c.city} onChange={(v) => setContract('city', v)} />
+          <Field label="Data por extenso" className="full" value={c.date} onChange={(v) => setContract('date', v)} />
+        </div>
+
+        <div className="contract-clauses">
+          <div className="panel-title compact-title">
+            <div>
+              <h3>Cláusulas</h3>
+              <p>O texto abaixo é o que será usado no PDF. Você pode mudar títulos, conteúdo, adicionar ou remover cláusulas.</p>
+            </div>
+            <button className="secondary-button" type="button" onClick={addClause}><Plus size={16} /> Adicionar cláusula</button>
+          </div>
+
+          {clauses.map((clause, index) => (
+            <article className="clause-editor" key={clause.id || index}>
+              <div className="clause-editor-head">
+                <Field label={`Título da cláusula ${index + 1}`} value={clause.title} onChange={(v) => setClause(index, 'title', v)} />
+                <button className="icon-button danger" type="button" onClick={() => removeClause(index)} aria-label="Remover cláusula"><Trash2 size={17} /></button>
+              </div>
+              <TextField label="Texto da cláusula" value={clause.content} onChange={(v) => setClause(index, 'content', v)} />
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <aside className="letterhead-preview">
+        <div className="paper-title">CONTRATO DE<br />PRESTAÇÃO DE SERVIÇOS</div>
+        <div className="paper-lines"><i /><i /><i /><i /><i /><i /></div>
+      </aside>
+    </div>
   )
 }
 

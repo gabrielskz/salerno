@@ -30,12 +30,18 @@ export interface CategoryTemplate {
 }
 
 export interface ContractData {
+  contractTitle?: string
   contractorName: string
   contractorDocument: string
   contractorAddress: string
+  contractorEmail?: string
+  contractorPhone?: string
+  contractorInstagram?: string
   clientName: string
   clientDocument: string
   clientAddress: string
+  clientEmail?: string
+  clientPhone?: string
   projectAddress: string
   scope: string
   deliverables: string
@@ -46,6 +52,13 @@ export interface ContractData {
   observations: string
   city: string
   date: string
+  clauses?: ContractClause[]
+}
+
+export interface ContractClause {
+  id: string
+  title: string
+  content: string
 }
 
 export interface Project {
